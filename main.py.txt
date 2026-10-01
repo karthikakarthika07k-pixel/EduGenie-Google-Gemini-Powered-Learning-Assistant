@@ -1,0 +1,94 @@
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+import json
+
+# Load API Key
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Use Gemini 1.5 Flash - Fast & Free
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+def get_user_input():
+    print("--- FitBuddy - Gemini AI Fitness Planner ---")
+    age = input("Age: ")
+    gender = input("Gender (male/female): ")
+    weight = input("Weight kg (e.g. 65): ")
+    height = input("Height cm (e.g. 170): ")
+    goal = input("Goal (weight_loss / muscle_gain / fitness): ")
+    level = input("Level (beginner / intermediate / advanced): ")
+    diet = input("Diet (veg / non_veg / vegan): ")
+    medical = input("Any medical issue (type None if no): ")
+    
+    return {
+        "age": age, "gender": gender, "weight": weight,
+        "height": height, "goal": goal, "level": level,
+        "diet": diet, "medical": medical
+    }
+
+def generate_plan(user_data):
+    
+    prompt = f"""
+    You are FitBuddy, a world-class Indian Fitness Coach.
+
+    USER DATA:
+    Age: {user_data['age']}, Gender: {user_data['gender']}, Weight: {user_data['weight']}kg, Height: {user_data['height']}cm
+    Goal: {user_data['goal']}, Level: {user_data['level']}, Diet: {user_data['diet']}, Medical: {user_data['medical']}
+
+    Generate a complete fitness plan in JSON format.
+    
+    Output ONLY valid JSON:
+    {{
+      "bmi": "calculate it",
+      "daily_calories": "2200 kcal",
+      "workout_7_days": {{
+        "Monday": ["Exercise with sets/reps"],
+        "Tuesday": [],
+        "Wednesday": [],
+        "Thursday": [],
+        "Friday": [],
+        "Saturday": [],
+        "Sunday": ["Rest - Yoga"]
+      }},
+      "diet_chart": {{
+        "breakfast": "Indian veg/non-veg food with protein",
+        "lunch": "...",
+        "evening_snack": "...",
+        "dinner": "..."
+      }},
+      "tips": ["3 tips in Tanglish"],
+      "motivation": "One powerful line"
+    }}
+    Diet must be strictly {user_data['diet']} and Indian style.
+    Workout must match {user_data['level']} and {user_data['goal']}.
+    """
+
+    print("\n🤖 Gemini AI is generating your plan... wait 5 sec...\n")
+    
+    response = model.generate_content(prompt)
+    
+    # Clean response
+    clean_text = response.text.replace("```json", "").replace("```", "").strip()
+    
+    try:
+        plan = json.loads(clean_text)
+        return plan
+    except:
+        # If Gemini returns text not JSON
+        return {"raw_response": response.text}
+
+def main():
+    user_data = get_user_input()
+    plan = generate_plan(user_data)
+    
+    print("\n================ YOUR GEMINI AI PLAN ================\n")
+    print(json.dumps(plan, indent=2, ensure_ascii=False))
+    
+    # Save to file
+    with open("my_fitness_plan.json", "w", encoding="utf-8") as f:
+        json.dump(plan, f, indent=4, ensure_ascii=False)
+    print("\n✅ Plan saved to my_fitness_plan.json")
+
+if __name__ == "__main__":
+    main()
